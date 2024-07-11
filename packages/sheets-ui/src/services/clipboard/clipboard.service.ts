@@ -412,12 +412,12 @@ export class SheetClipboardService extends Disposable implements ISheetClipboard
 
     private async _pasteExternal(html: string, pasteType: string): Promise<boolean> {
         // this._logService.log('[SheetClipboardService]', 'pasting external content', html);
-
         // steps of pasting:
 
         // 1. get properties of the table by parsing raw html content, including col properties / row properties
         // cell properties and cell contents.
         const { rowProperties, colProperties, cellMatrix } = this._htmlToUSM.convert(html);
+        // console.log('===cellMatrix', cellMatrix);
         if (!cellMatrix) {
             return false;
         }

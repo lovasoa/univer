@@ -15,7 +15,7 @@
  */
 
 import type { IDocumentBody, IDocumentData, ITextRun, ITextStyle, Nullable } from '@univerjs/core';
-import { ObjectMatrix, skipParseTagNames } from '@univerjs/core';
+import { CustomRangeType, DataStreamTreeTokenType, ObjectMatrix, skipParseTagNames, Tools } from '@univerjs/core';
 import { handleStringToStyle, textTrim } from '@univerjs/ui';
 
 import type { IPastePlugin } from '@univerjs/docs-ui';
@@ -144,7 +144,7 @@ export class HtmlToUSMService {
         const tableStrings = html.match(/<table\b[^>]*>([\s\S]*?)<\/table>/gi);
         const tables: IParsedTablesInfo[] = [];
         this.process(null, this._dom.childNodes!, newDocBody, tables);
-        const { paragraphs, dataStream, textRuns } = newDocBody;
+        const { paragraphs, dataStream, textRuns, customRanges } = newDocBody;
 
         // use paragraph to split rows
         if (paragraphs) {
@@ -192,11 +192,12 @@ export class HtmlToUSMService {
                     dataStream: singleDataStream,
                     textRuns,
                     paragraphs: generateParagraphs(singleDataStream),
+                    customRanges,
                 };
 
                 const dataStreamLength = dataStream.length;
                 const textRunsLength = textRuns?.length ?? 0;
-                if (!textRunsLength || (textRunsLength === 1 && textRuns![0].st === 0 && textRuns![0].ed === dataStreamLength)) {
+                if (!customRanges?.length && (!textRunsLength || (textRunsLength === 1 && textRuns![0].st === 0 && textRuns![0].ed === dataStreamLength))) {
                     valueMatrix.setValue(0, 0, {
                         v: dataStream,
                     });
@@ -521,48 +522,48 @@ export class HtmlToUSMService {
                 }
 
                 // TODO: @JOCS, More characters need to be replaced, like `\b`
-                const text = node.nodeValue?.replace(/[\r\n]/g, '');
+                let text = node.nodeValue?.replace(/[\r\n]/g, '');
                 let style;
 
                 if (parent && this._styleCache.has(parent)) {
                     style = this._styleCache.get(parent);
                 }
-                const newDoc: IDocumentBody = {
-                    dataStream: '',
-                    textRuns: [],
-                };
+                // const newDoc: IDocumentBody = {
+                //     dataStream: '',
+                //     textRuns: [],
+                // };
 
-                // if ((parent as Element).tagName.toUpperCase() === 'A') {
-                //     const id = Tools.generateRandomId();
-                //     text = `${DataStreamTreeTokenType.CUSTOM_RANGE_START}${text}${DataStreamTreeTokenType.CUSTOM_RANGE_END}`;
-                //     doc.customRanges = [
-                //         ...(doc.customRanges ?? []),
-                //         {
-                //             startIndex: doc.dataStream.length,
-                //             endIndex: doc.dataStream.length + text.length - 1,
-                //             rangeId: id,
-                //             rangeType: CustomRangeType.HYPERLINK,
-                //         },
-                //     ];
-                //     doc.payloads = {
-                //         ...doc.payloads,
-                //         [id]: (parent as HTMLAnchorElement).href,
-                //     };
-                // }
+                if ((parent as Element).tagName.toUpperCase() === 'A') {
+                    const id = Tools.generateRandomId();
+                    text = `${DataStreamTreeTokenType.CUSTOM_RANGE_START}${text}${DataStreamTreeTokenType.CUSTOM_RANGE_END}`;
+                    doc.customRanges = [
+                        ...(doc.customRanges ?? []),
+                        {
+                            startIndex: doc.dataStream.length,
+                            endIndex: doc.dataStream.length + text.length - 1,
+                            rangeId: id,
+                            rangeType: CustomRangeType.HYPERLINK,
+                        },
+                    ];
+                    doc.payloads = {
+                        ...doc.payloads,
+                        [id]: (parent as HTMLAnchorElement).href,
+                    };
+                }
 
                 doc.dataStream += text;
-                newDoc.dataStream += text;
+                // newDoc.dataStream += text;
                 if (style && Object.getOwnPropertyNames(style).length) {
                     doc.textRuns!.push({
                         st: doc.dataStream.length - text!.length,
                         ed: doc.dataStream.length,
                         ts: style,
                     });
-                    newDoc.textRuns!.push({
-                        st: doc.dataStream.length - text!.length,
-                        ed: doc.dataStream.length,
-                        ts: style,
-                    });
+                    // newDoc.textRuns!.push({
+                    //     st: doc.dataStream.length - text!.length,
+                    //     ed: doc.dataStream.length,
+                    //     ts: style,
+                    // });
                 }
             } else if (skipParseTagNames.includes(node.nodeName.toLowerCase())) {
                 continue;
