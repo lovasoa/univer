@@ -949,7 +949,7 @@ export class PromptController extends Disposable {
     private _refreshSelectionForReference(refSelectionRenderService: RefSelectionsRenderService, refSelections: IRefSelection[]) {
         const [unitId, sheetId] = refSelectionRenderService.getLocation();
         const { unitId: selfUnitId, sheetId: selfSheetId } = this._getCurrentUnitIdAndSheetId();
-        const isSelf = unitId === selfUnitId && sheetId === selfSheetId;
+        const isSelf = unitId === selfUnitId && sheetId === selfSheetId; // always true?
 
         const workbook = this._univerInstanceService.getUniverSheetInstance(unitId)!;
         const worksheet = workbook.getSheetBySheetId(sheetId)!;
@@ -964,7 +964,7 @@ export class PromptController extends Disposable {
             const gridRange = deserializeRangeWithSheet(token);
             const { unitId: refUnitId, sheetName, range: rawRange } = gridRange;
 
-            if (!isSelf && (!refUnitId || !sheetName)) {
+            if (sheetName !== '' && sheetId.toLowerCase() !== sheetName.toLocaleLowerCase()) {
                 continue;
             }
 
@@ -980,7 +980,7 @@ export class PromptController extends Disposable {
 
             const refSheetId = this._getSheetIdByName(unitId, sheetName.trim());
 
-            if (sheetName.length !== 0 && refSheetId !== sheetId) {
+            if (sheetName.length !== 0 && refSheetId && refSheetId !== sheetId) {
                 continue;
             }
 
