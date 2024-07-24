@@ -988,11 +988,11 @@ export class BaseSelectionRenderService extends Disposable implements ISheetSele
             selectionData.style = getNormalSelectionStyle(this._themeService);
             return selectionData;
         });
-        if (selections.length === 0) {
-            this._reset();
-        } else {
-            this.updateControlForCurrentByRangeData(selections);
-        }
+        // if (selections.length === 0) {
+        //     this._reset();
+        // } else {
+        this.updateControlForCurrentByRangeData(selections);
+        // }
     }
 }
 
