@@ -22,6 +22,7 @@ import { UniverSlidesUIPlugin } from '@univerjs/slides-ui';
 import { UniverUIPlugin } from '@univerjs/ui';
 
 import { UniverFormulaEnginePlugin } from '@univerjs/engine-formula';
+import { UniverDocsPlugin } from '@univerjs/docs';
 import { DEFAULT_SLIDE_DATA } from '../data';
 import { enUS, ruRU, zhCN } from '../locales';
 
@@ -41,6 +42,10 @@ univer.registerPlugin(UniverRenderEnginePlugin);
 univer.registerPlugin(UniverFormulaEnginePlugin);
 univer.registerPlugin(UniverUIPlugin, {
     container: 'app',
+});
+// core plugins
+univer.registerPlugin(UniverDocsPlugin, {
+    hasScroll: false,
 });
 univer.registerPlugin(UniverSlidesPlugin);
 univer.registerPlugin(UniverSlidesUIPlugin);

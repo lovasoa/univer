@@ -14,7 +14,7 @@
  * limitations under the License.
  */
 
-import type { IDisposable } from '@univerjs/core';
+import type { IDisposable, IRectXYWH } from '@univerjs/core';
 import {
     createIdentifier,
     Disposable, DOCS_NORMAL_EDITOR_UNIT_ID_KEY,
@@ -38,6 +38,7 @@ export interface ISlideEditorBridgeService {
     dispose(): void;
     // refreshEditCellState(): void;
     // setEditCell(param: ICurrentEditCellParam): void;
+    setEditorRect(rect: IRectXYWH): void;
     // getEditCellState(): Readonly<Nullable<IEditorBridgeServiceParam>>;
     // // Gets the DocumentDataModel of the latest table cell based on the latest cell contents
     // getLatestEditCellState(): Readonly<Nullable<IEditorBridgeServiceParam>>;
@@ -69,5 +70,9 @@ export class SlideEditorBridgeService extends Disposable implements ISlideEditor
 
     override dispose() {
         super.dispose();
+    }
+
+    setEditorRect(rect: IRectXYWH) {
+
     }
 }

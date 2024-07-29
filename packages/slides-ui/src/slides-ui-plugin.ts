@@ -23,6 +23,7 @@ import type { IUniverSlidesDrawingConfig } from './controllers/slide-ui.controll
 import { SlideUIController } from './controllers/slide-ui.controller';
 import { SlideRenderController } from './controllers/slide.render-controller';
 import { ISlideEditorBridgeService, SlideEditorBridgeService } from './services/slide-editor-bridge.service';
+import { EditorBridgeRenderController } from './controllers/slide-editing-bridge.render-controller';
 
 export const SLIDE_UI_PLUGIN_NAME = 'SLIDE_UI';
 
@@ -42,6 +43,8 @@ export class UniverSlidesUIPlugin extends Plugin {
     override onStarting(injector: Injector): void {
         ([
             [ISlideEditorBridgeService, { useClass: SlideEditorBridgeService }],
+            [EditorBridgeRenderController],
+            [SlideEditorBridgeService],
             [
                 SlideUIController,
                 {
