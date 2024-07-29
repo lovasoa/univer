@@ -19,9 +19,10 @@ import { Inject, Injector, IUniverInstanceService, Plugin, UniverInstanceType } 
 
 import { IImageIoService, ImageIoService } from '@univerjs/drawing';
 import { IRenderManagerService } from '@univerjs/engine-render';
-import { SlideUIController } from './controllers/slide-ui.controller';
 import type { IUniverSlidesDrawingConfig } from './controllers/slide-ui.controller';
+import { SlideUIController } from './controllers/slide-ui.controller';
 import { SlideRenderController } from './controllers/slide.render-controller';
+import { ISlideEditorBridgeService, SlideEditorBridgeService } from './services/slide-editor-bridge.service';
 
 export const SLIDE_UI_PLUGIN_NAME = 'SLIDE_UI';
 
@@ -40,6 +41,7 @@ export class UniverSlidesUIPlugin extends Plugin {
 
     override onStarting(injector: Injector): void {
         ([
+            [ISlideEditorBridgeService, { useClass: SlideEditorBridgeService }],
             [
                 SlideUIController,
                 {
