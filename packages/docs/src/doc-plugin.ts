@@ -74,7 +74,6 @@ export class UniverDocsPlugin extends Plugin {
         @Inject(Injector) override _injector: Injector
     ) {
         super();
-
         this._initializeDependencies(_injector);
 
         this._initializeCommands();

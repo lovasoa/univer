@@ -2380,6 +2380,10 @@ importers:
         version: 2.0.3(@types/node@20.14.11)(happy-dom@13.3.8)(jsdom@24.1.0)(less@4.2.0)(sass@1.77.5)(terser@5.31.1)
 
   packages/slides:
+    dependencies:
+      '@univerjs/docs':
+        specifier: workspace:*
+        version: link:../docs
     devDependencies:
       '@univerjs/core':
         specifier: workspace:*

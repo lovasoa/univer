@@ -107,6 +107,7 @@ export class UniverDocsUIPlugin extends Plugin {
     }
 
     private _initDependencies(injector: Injector) {
+        console.log('docs ui plugin!!!!!!!!!');
         const dependencies: Dependency[] = [
             [DocUIController, { useFactory: () => this._injector.createInstance(DocUIController, this._config) }],
             [DocClipboardController],
@@ -117,7 +118,7 @@ export class UniverDocsUIPlugin extends Plugin {
             [DocCanvasPopManagerService],
             [DocHoverManagerService],
         ];
-
+        window.inj = injector;
         dependencies.forEach((d) => injector.add(d));
     }
 

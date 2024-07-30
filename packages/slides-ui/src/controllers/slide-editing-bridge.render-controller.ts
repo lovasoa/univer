@@ -14,11 +14,11 @@
  * limitations under the License.
  */
 
-import type { IDisposable, IRectXYWH, Workbook } from '@univerjs/core';
-import { DisposableCollection, DOCS_NORMAL_EDITOR_UNIT_ID_KEY, FOCUSING_EDITOR_BUT_HIDDEN, ICommandService, IContextService, Inject, IUniverInstanceService, Nullable, RxDisposable } from '@univerjs/core';
+import type { IDisposable, IDocumentBody, IDocumentData, IDocumentStyle, IRectXYWH, Workbook } from '@univerjs/core';
+import { DisposableCollection, DOCS_NORMAL_EDITOR_UNIT_ID_KEY, DocumentDataModel, FOCUSING_EDITOR_BUT_HIDDEN, ICommandService, IContextService, Inject, IUniverInstanceService, Nullable, RxDisposable } from '@univerjs/core';
 import { type IDocumentLayoutObject, type IRenderContext, type IRenderModule, ITextSelectionRenderManager } from '@univerjs/engine-render';
 import { IRangeSelectorService } from '@univerjs/ui';
-import type { Subject } from 'rxjs';
+import { Subject } from 'rxjs';
 import {
     VIEWPORT_KEY as DOC_VIEWPORT_KEY,
     DOCS_COMPONENT_MAIN_LAYER_INDEX,
@@ -32,8 +32,8 @@ import { ISlideEditorBridgeService } from '../services/slide-editor-bridge.servi
 
 const HIDDEN_EDITOR_POSITION = -1000;
 
-export class EditorBridgeRenderController extends RxDisposable implements IRenderModule {
-    textRect$: Subject<IRectXYWH>;
+export class SlideEditorBridgeRenderController extends RxDisposable implements IRenderModule {
+    textRect$: Subject<IRectXYWH> = new Subject();
     constructor(
         private readonly _context: IRenderContext<Workbook>,
         @IContextService private readonly _contextService: IContextService,
@@ -63,8 +63,26 @@ export class EditorBridgeRenderController extends RxDisposable implements IRende
       // editor bridge set pos
         // this._editorBridgeService.setEditorRect(rect);
         const editorUnitId = DOCS_NORMAL_EDITOR_UNIT_ID_KEY;
-        const documentLayoutObject: IDocumentLayoutObject = null;
         const unitId = 'slide_test';
+
+        const docData: IDocumentData = {
+            id: unitId,
+            body: {
+                dataStream: 'A Text !!!!',
+            } as IDocumentBody,
+            documentStyle: {} as IDocumentStyle,
+        };
+        const docDataModel = new DocumentDataModel(docData);
+        const documentLayoutObject: IDocumentLayoutObject = {
+            documentModel: docDataModel,
+            fontString: 'document',
+            textRotation: { a: 0, v: 0 },
+            wrapStrategy: 0,
+            verticalAlign: 0,
+            horizontalAlign: 0,
+            paddingData: { t: 0, b: 1, l: 2, r: 2 },
+        };
+
         const _editRectState = {
             position: rect,
             scaleX: 1,

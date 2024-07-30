@@ -17,7 +17,8 @@
 import type { ICommand, SlideDataModel } from '@univerjs/core';
 import { CommandType, IUniverInstanceService, PageElementType, Tools, UniverInstanceType } from '@univerjs/core';
 import { CanvasView } from '@univerjs/slides';
-import { EditorBridgeRenderController } from '../../controllers/slide-editing-bridge.render-controller';
+import { IRenderManagerService } from '@univerjs/engine-render';
+import { SlideEditorBridgeRenderController } from '../../controllers/slide-editing-bridge.render-controller';
 
 export interface ISlideAddTextParam {
     text: string;
@@ -68,7 +69,10 @@ export const SlideAddTextOperation: ICommand<ISlideAddTextParam> = {
             canvasview.setObjectActiveByPage(sceneObject, activePage.id);
         }
 
-        const editorBridgeRenderController = accessor.get(EditorBridgeRenderController);
+        // const editorBridgeRenderController = accessor.get(SlideEditorBridgeRenderController);
+        const renderManagerService = accessor.get(IRenderManagerService);
+        const render = renderManagerService.getCurrent();
+        const slideEditorBridgeRenderController = render?.with(SlideEditorBridgeRenderController);
 
         const rect = {
             x: left,
@@ -76,7 +80,7 @@ export const SlideAddTextOperation: ICommand<ISlideAddTextParam> = {
             width: defaultWidth,
             height: defaultheight,
         };
-        editorBridgeRenderController.textRect$.next(rect);
+        slideEditorBridgeRenderController?.textRect$.next(rect);
 
         return true;
     },

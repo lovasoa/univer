@@ -27,6 +27,7 @@ import { SetSlidePageThumbOperation } from '../commands/operations/set-thumb.ope
 import { UploadFileMenu } from '../components/upload-component/UploadFile';
 import { COMPONENT_UPLOAD_FILE_MENU } from '../components/upload-component/component-name';
 import { SlideSideBar } from '../views/slide-bar/SlideBar';
+import { EditorContainer } from '../views/editor-container';
 import { IMAGE_UPLOAD_ICON, SlideImageMenuFactory, UploadSlideFloatImageMenuFactory } from './image.menu';
 import { GRAPH_SINGLE_ICON, SlideShapeMenuFactory, UploadSlideFloatShapeMenuFactory } from './shape.menu';
 import { AddTextMenuItemFactory, TEXT_ICON_ID } from './text.menu';
@@ -96,6 +97,10 @@ export class SlideUIController extends Disposable {
     private _initUIComponents(): void {
         this.disposeWithMe(
             this._uiPartsService.registerComponent(BuiltInUIPart.LEFT_SIDEBAR, () => connectInjector(SlideSideBar, this._injector))
+        );
+
+        this.disposeWithMe(
+            this._uiPartsService.registerComponent(BuiltInUIPart.CONTENT, () => connectInjector(EditorContainer, this._injector))
         );
     }
 }
