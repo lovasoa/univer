@@ -63,6 +63,21 @@ interface IUniverFormulaEngine {
     function?: Array<[Ctor<BaseFunction>, IFunctionNames]>;
 }
 
+export class UniverFormulaEngineDelegateePlugin extends Plugin {
+    static override pluginName = PLUGIN_NAME;
+
+    constructor(
+        private _config: IUniverFormulaEngine,
+        @Inject(Injector) protected override _injector: Injector
+    ) {
+        super();
+    }
+
+    override onStarting(injector: Injector): void {
+
+    }
+}
+
 export class UniverFormulaEnginePlugin extends Plugin {
     static override pluginName = PLUGIN_NAME;
 
@@ -74,10 +89,6 @@ export class UniverFormulaEnginePlugin extends Plugin {
     }
 
     override onStarting(): void {
-        this._initialize();
-    }
-
-    private _initialize() {
         // worker and main thread
         const dependencies: Dependency[] = [
             // Services
@@ -125,6 +136,7 @@ export class UniverFormulaEnginePlugin extends Plugin {
                 [Interpreter],
                 [AstTreeBuilder],
                 [Lexer],
+
                 // AstNode factory
                 [AstRootNodeFactory],
                 [FunctionNodeFactory],
@@ -142,3 +154,5 @@ export class UniverFormulaEnginePlugin extends Plugin {
         dependencies.forEach((dependency) => this._injector.add(dependency));
     }
 }
+
+// TODO: what services would be called by the mutations? We should filter them out and make them abstracted dependencies

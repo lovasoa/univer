@@ -14,12 +14,16 @@
  * limitations under the License.
  */
 
+/* eslint-disable ts/no-explicit-any */
+
 import { RxDisposable } from '@univerjs/core';
 import type { Subscription } from 'rxjs';
 import { BehaviorSubject, firstValueFrom, isObservable, Observable, of } from 'rxjs';
 import { filter, take, takeUntil } from 'rxjs/operators';
 
-/** This protocol is for transferring data from the two peer univer instance running in different locations. */
+/**
+ * This protocol is for transferring data from the two peer univer instance running in different locations.
+ */
 export interface IMessageProtocol {
     send(message: any): void;
     onMessage: Observable<any>;
@@ -106,8 +110,8 @@ export function toModule<T extends object>(channel: IChannel): T {
     });
 }
 
-function propertyIsEventSource(name: string): boolean {
-    return name.endsWith('$');
+export function propertyIsEventSource(name: string | symbol): boolean {
+    return typeof name === 'string' && name.endsWith('$');
 }
 
 export interface IChannelClient {
@@ -146,7 +150,7 @@ enum ResponseType {
      * client an `INITIALIZE` response to indicate that the server is up
      * and ready to provide services.
      */
-    INITIALIZE = 0,
+    INITIALIZED = 0,
 
     CALL_SUCCESS = 201,
     CALL_FAILURE = 202,
@@ -154,6 +158,8 @@ enum ResponseType {
     SUBSCRIBE_NEXT = 300,
     SUBSCRIBE_ERROR = 301,
     SUBSCRIBE_COMPLETE = 302,
+
+    CHANNEL_MISSING = 500,
 }
 
 interface IRPCResponse {
@@ -166,6 +172,10 @@ interface IRPCResponse {
 interface IResponseHandler {
     handle(response: IRPCResponse): void;
 }
+
+export class RPCFailError extends Error {}
+
+export class RPCMissingChannelError extends Error {}
 
 /**
  * This method provides implementation for `IChannel` and is responsible for
@@ -189,12 +199,13 @@ export class ChannelClient extends RxDisposable implements IChannelClient {
     }
 
     getChannel<T extends IChannel>(channelName: string): T {
+        // eslint-disable-next-line ts/no-this-alias
         const self = this;
 
         return {
             call(method: string, args?: any) {
                 if (self._disposed) {
-                    return Promise.reject();
+                    return Promise.reject(new Error('[ChannelClient]" client is disposed!'));
                 }
 
                 return self._remoteCall(channelName, method, args);
@@ -224,6 +235,8 @@ export class ChannelClient extends RxDisposable implements IChannelClient {
         const sequence = ++this._lastRequestCounter;
         const type = RequestType.CALL;
         const request: IRPCRequest = { seq: sequence, type, channelName, method, args };
+
+        // eslint-disable-next-line ts/no-this-alias
         const client = this;
 
         return new Promise((resolve, reject) => {
@@ -231,6 +244,7 @@ export class ChannelClient extends RxDisposable implements IChannelClient {
             // with response here as well.
             const responseHandler: IResponseHandler = {
                 handle(response: IRPCResponse) {
+                    client._pendingRequests.delete(sequence);
                     switch (response.type) {
                         case ResponseType.CALL_SUCCESS:
                             client._pendingRequests.delete(sequence);
@@ -238,7 +252,10 @@ export class ChannelClient extends RxDisposable implements IChannelClient {
                             break;
                         case ResponseType.CALL_FAILURE:
                             client._pendingRequests.delete(sequence);
-                            reject(response.data);
+                            reject(new RPCFailError(response.data));
+                            break;
+                        case ResponseType.CHANNEL_MISSING:
+                            reject(new RPCMissingChannelError());
                             break;
                         default:
                             throw new Error('[ChannelClient]: unknown response type!');
@@ -266,10 +283,13 @@ export class ChannelClient extends RxDisposable implements IChannelClient {
                                 subscriber.next(response.data);
                                 break;
                             case ResponseType.SUBSCRIBE_ERROR:
-                                subscriber.error(response.data);
+                                subscriber.error(new RPCFailError(response.data));
                                 break;
                             case ResponseType.SUBSCRIBE_COMPLETE:
                                 subscriber.complete();
+                                break;
+                            case ResponseType.CHANNEL_MISSING:
+                                subscriber.error(new RPCMissingChannelError());
                                 break;
                             default:
                                 throw new Error('[ChannelClient]: unknown response type!');
@@ -303,7 +323,7 @@ export class ChannelClient extends RxDisposable implements IChannelClient {
 
     private _onMessage(response: IRPCResponse): void {
         switch (response.type) {
-            case ResponseType.INITIALIZE:
+            case ResponseType.INITIALIZED:
                 this._initialized.next(true);
                 break;
             case ResponseType.CALL_SUCCESS:
@@ -326,7 +346,7 @@ export class ChannelServer extends RxDisposable implements IChannelServer {
         super();
 
         this._protocol.onMessage.pipe(takeUntil(this.dispose$)).subscribe((message) => this._onRequest(message));
-        this._sendResponse({ seq: -1, type: ResponseType.INITIALIZE });
+        this._sendResponse({ seq: -1, type: ResponseType.INITIALIZED });
     }
 
     override dispose(): void {
@@ -428,3 +448,4 @@ export class ChannelServer extends RxDisposable implements IChannelServer {
         this._protocol.send(response);
     }
 }
+

@@ -15,9 +15,10 @@
  */
 
 import type { ICommandInfo, IUnitRange } from '@univerjs/core';
-import { Disposable, ICommandService, Inject, IUniverInstanceService, LifecycleStages, OnLifecycle } from '@univerjs/core';
+import { Disposable, ICommandService, Inject, LifecycleStages, OnLifecycle } from '@univerjs/core';
+import { Subject } from 'rxjs';
 
-import type { IDirtyUnitFeatureMap, IDirtyUnitOtherFormulaMap, IDirtyUnitSheetDefinedNameMap, IDirtyUnitSheetNameMap, IFormulaData } from '../basics/common';
+import type { IDirtyUnitFeatureMap, IDirtyUnitOtherFormulaMap, IDirtyUnitSheetDefinedNameMap, IDirtyUnitSheetNameMap, IFormulaData, IRuntimeOtherUnitDataType, IRuntimeUnitDataPrimitiveType } from '../basics/common';
 import type { ISetArrayFormulaDataMutationParams } from '../commands/mutations/set-array-formula-data.mutation';
 import { SetArrayFormulaDataMutation } from '../commands/mutations/set-array-formula-data.mutation';
 import type { ISetFormulaCalculationStartMutation } from '../commands/mutations/set-formula-calculation.mutation';
@@ -35,12 +36,19 @@ import type { IAllRuntimeData } from '../services/runtime.service';
 import { FormulaExecutedStateType } from '../services/runtime.service';
 import { convertRuntimeToUnitData } from '../basics/runtime';
 
+interface ICalculationResult {
+    unitData: IRuntimeUnitDataPrimitiveType;
+    unitOtherData: IRuntimeOtherUnitDataType;
+}
+
 @OnLifecycle(LifecycleStages.Ready, CalculateController)
 export class CalculateController extends Disposable {
+    private readonly _computingResult$ = new Subject<ICalculationResult>();
+    readonly computingResult$ = this._computingResult$.asObservable();
+
     constructor(
         @ICommandService private readonly _commandService: ICommandService,
         @Inject(CalculateFormulaService) private readonly _calculateFormulaService: CalculateFormulaService,
-        @IUniverInstanceService private readonly _univerInstanceService: IUniverInstanceService,
         @Inject(FormulaDataModel) private readonly _formulaDataModel: FormulaDataModel
     ) {
         super();
@@ -51,44 +59,40 @@ export class CalculateController extends Disposable {
     private _initialize(): void {
         this._commandExecutedListener();
         this._initialExecuteFormulaListener();
-
         this._initialExecuteFormulaProcessListener();
     }
 
     private _commandExecutedListener() {
-        this.disposeWithMe(
-            this._commandService.onCommandExecuted((command: ICommandInfo, options) => {
-                if (command.id === SetFormulaCalculationStopMutation.id) {
-                    this._calculateFormulaService.stopFormulaExecution();
-                } else if (command.id === SetFormulaDataMutation.id) {
-                    const formulaData = (command.params as ISetFormulaDataMutationParams).formulaData as IFormulaData;
+        this.disposeWithMe(this._commandService.onCommandExecuted((command: ICommandInfo) => {
+            if (command.id === SetFormulaCalculationStopMutation.id) {
+                this._calculateFormulaService.stopFormulaExecution();
+            } else if (command.id === SetFormulaDataMutation.id) {
+                const formulaData = (command.params as ISetFormulaDataMutationParams).formulaData as IFormulaData;
 
-                    // formulaData is the incremental data sent from the main thread and needs to be merged into formulaDataModel
-                    this._formulaDataModel.mergeFormulaData(formulaData);
-                } else if (command.id === SetFormulaCalculationStartMutation.id) {
-                    const params = command.params as ISetFormulaCalculationStartMutation;
+                // formulaData is the incremental data sent from the main thread and needs to be merged into formulaDataModel
+                this._formulaDataModel.mergeFormulaData(formulaData);
+            } else if (command.id === SetFormulaCalculationStartMutation.id) {
+                const params = command.params as ISetFormulaCalculationStartMutation;
 
-                    if (params.forceCalculation === true) {
-                        this._calculate(true);
-                    } else {
-                        const { dirtyRanges, dirtyNameMap, dirtyDefinedNameMap, dirtyUnitFeatureMap, dirtyUnitOtherFormulaMap } = params;
+                if (params.forceCalculation === true) {
+                    this._calculate(true);
+                } else {
+                    const { dirtyRanges, dirtyNameMap, dirtyDefinedNameMap, dirtyUnitFeatureMap, dirtyUnitOtherFormulaMap } = params;
 
-                        this._calculate(false, dirtyRanges, dirtyNameMap, dirtyDefinedNameMap, dirtyUnitFeatureMap, dirtyUnitOtherFormulaMap);
-                    }
-                } else if (command.id === SetArrayFormulaDataMutation.id) {
-                    const params = command.params as ISetArrayFormulaDataMutationParams;
-
-                    if (params == null) {
-                        return;
-                    }
-
-                    const { arrayFormulaRange, arrayFormulaCellData } = params;
-                    // TODO@Dushusir: Merge the array formula data into the formulaDataModel
-                    this._formulaDataModel.setArrayFormulaRange(arrayFormulaRange);
-                    this._formulaDataModel.setArrayFormulaCellData(arrayFormulaCellData);
+                    this._calculate(false, dirtyRanges, dirtyNameMap, dirtyDefinedNameMap, dirtyUnitFeatureMap, dirtyUnitOtherFormulaMap);
                 }
-            })
-        );
+            } else if (command.id === SetArrayFormulaDataMutation.id) {
+                const params = command.params as ISetArrayFormulaDataMutationParams;
+                if (!params) {
+                    return;
+                }
+
+                const { arrayFormulaRange, arrayFormulaCellData } = params;
+                // TODO@Dushusir: Merge the array formula data into the formulaDataModel
+                this._formulaDataModel.setArrayFormulaRange(arrayFormulaRange);
+                this._formulaDataModel.setArrayFormulaCellData(arrayFormulaCellData);
+            }
+        }));
     }
 
     private async _calculate(
@@ -182,37 +186,23 @@ export class CalculateController extends Disposable {
             return;
         }
 
-        // const deleteMutationInfo = this._deletePreviousArrayFormulaValue(arrayFormulaRange);
-
         if (arrayFormulaRange) {
             this._formulaDataModel.clearPreviousArrayFormulaCellData(clearArrayFormulaCellData);
-
             this._formulaDataModel.mergeArrayFormulaCellData(arrayFormulaCellData);
-
             this._formulaDataModel.mergeArrayFormulaRange(arrayFormulaRange);
 
             // Synchronous to the main thread
-            this._commandService.executeCommand(
-                SetArrayFormulaDataMutation.id,
-                {
-                    arrayFormulaRange: this._formulaDataModel.getArrayFormulaRange(),
-                    arrayFormulaCellData: this._formulaDataModel.getArrayFormulaCellData(),
-                },
-                {
-                    onlyLocal: true,
-                }
-            );
+            this._commandService.executeCommand(SetArrayFormulaDataMutation.id, {
+                arrayFormulaRange: this._formulaDataModel.getArrayFormulaRange(),
+                arrayFormulaCellData: this._formulaDataModel.getArrayFormulaCellData(),
+            }, {
+                onlyLocal: true,
+            });
         }
 
-        this._commandService.executeCommand(
-            SetFormulaCalculationResultMutation.id,
-            {
-                unitData: convertRuntimeToUnitData(unitData),
-                unitOtherData,
-            },
-            {
-                onlyLocal: true,
-            }
-        );
+        this._computingResult$.next({
+            unitData: convertRuntimeToUnitData(unitData),
+            unitOtherData,
+        });
     }
 }

@@ -14,11 +14,13 @@
  * limitations under the License.
  */
 
-import type { IDisposable } from '@univerjs/core';
+/* eslint-disable ts/no-explicit-any */
+
+import type { IAccessor, IdentifierDecorator, IDisposable } from '@univerjs/core';
 import { createIdentifier } from '@univerjs/core';
 
 import type { IChannel, IMessageProtocol } from './rpc.service';
-import { ChannelClient, ChannelServer } from './rpc.service';
+import { ChannelClient, ChannelServer, propertyIsEventSource } from './rpc.service';
 
 export interface IRPCChannelService {
     requestChannel(name: string): IChannel;
@@ -52,3 +54,41 @@ export class ChannelService implements IDisposable {
         this._server.registerChannel(name, channel);
     }
 }
+
+/**
+ * This function provides a service that works as a proxy. When service is called, it would check
+ * if there's a local service with the identifier. If so, it would call the service directly. If not,
+ * it would call over RPC instead.
+ */
+export function makeIsomoService<T extends object>(
+    accessor: IAccessor,
+    serviceIdentifier: IdentifierDecorator<T>
+) {
+    return new Proxy({} as T, {
+        get(_: T, propKey: string) {
+            return function (...args: any[]) {
+                const hasLocal = accessor.has(serviceIdentifier);
+                if (hasLocal) {
+                    const localService = accessor.get(serviceIdentifier);
+                    const expectedFunction = localService[propKey as keyof T];
+                    if (typeof expectedFunction !== 'function') {
+                        throw new TypeError('[IsomoService]: you can only IsomoService to call functions upon.');
+                    }
+
+                    const result = expectedFunction.apply(localService, args);
+                    return Promise.resolve(result);
+                }
+
+                const channel = accessor.get(IRPCChannelService).requestChannel(serviceIdentifier.toString());
+                const isObservable = propertyIsEventSource(propKey);
+                if (isObservable) {
+                    const observable = channel.subscribe(propKey, args[0]);
+                    return observable;
+                }
+
+                return channel.call(propKey, args[0]);
+            };
+        },
+    });
+}
+

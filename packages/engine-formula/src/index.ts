@@ -126,9 +126,10 @@ export { AsyncArrayObject } from './engine/reference-object/base-reference-objec
 export { strip, stripErrorMargin } from './engine/utils/math-kit';
 export { AsyncObject } from './engine/reference-object/base-reference-object';
 
+export { CalculateController } from './controller/calculate.controller';
+
 // #region - all commands
 
-export { RegisterFunctionMutation } from './commands/mutations/register-function.mutation';
 export { type ISetArrayFormulaDataMutationParams, SetArrayFormulaDataMutation } from './commands/mutations/set-array-formula-data.mutation';
 export { RemoveDefinedNameMutation, SetDefinedNameMutation, type ISetDefinedNameMutationSearchParam, type ISetDefinedNameMutationParam } from './commands/mutations/set-defined-name.mutation';
 export { RemoveFeatureCalculationMutation, SetFeatureCalculationMutation } from './commands/mutations/set-feature-calculation.mutation';

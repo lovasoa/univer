@@ -17,13 +17,14 @@
 import type { ICellData, ICommandInfo, IObjectMatrixPrimitiveType, Nullable } from '@univerjs/core';
 import { Disposable, ICommandService, Inject, IUniverInstanceService, LifecycleStages, ObjectMatrix, OnLifecycle } from '@univerjs/core';
 import type { ISetFormulaCalculationResultMutation } from '@univerjs/engine-formula';
-import { handleNumfmtInCell, SetFormulaCalculationResultMutation } from '@univerjs/engine-formula';
+import { CalculateController, handleNumfmtInCell, SetFormulaCalculationResultMutation } from '@univerjs/engine-formula';
 
 import { SetRangeValuesMutation } from '../commands/mutations/set-range-values.mutation';
 
 @OnLifecycle(LifecycleStages.Ready, CalculateResultApplyController)
 export class CalculateResultApplyController extends Disposable {
     constructor(
+        @Inject(CalculateController) private readonly _calculateController: CalculateController,
         @Inject(IUniverInstanceService) private _univerInstanceService: IUniverInstanceService,
         @ICommandService private readonly _commandService: ICommandService
     ) {
@@ -33,62 +34,54 @@ export class CalculateResultApplyController extends Disposable {
     }
 
     private _initialize(): void {
-        this.disposeWithMe(
-            this._commandService.onCommandExecuted((command: ICommandInfo) => {
-                if (command.id !== SetFormulaCalculationResultMutation.id) {
-                    return;
+        this.disposeWithMe(this._calculateController.computingResult$.subscribe((params) => {
+            const { unitData } = params;
+
+            const unitIds = Object.keys(unitData);
+
+            // Update each calculated value, possibly involving all cells
+            const redoMutationsInfo: ICommandInfo[] = [];
+
+            unitIds.forEach((unitId) => {
+                const sheetData = unitData[unitId];
+
+                if (sheetData == null) {
+                    return true;
                 }
 
-                const params = command.params as ISetFormulaCalculationResultMutation;
+                const sheetIds = Object.keys(sheetData);
 
-                const { unitData } = params;
+                sheetIds.forEach((sheetId) => {
+                    const cellData = sheetData[sheetId];
 
-                const unitIds = Object.keys(unitData);
+                    // const arrayFormula = arrayFormulaRange[unitId][sheetId];
 
-                // Update each calculated value, possibly involving all cells
-                const redoMutationsInfo: ICommandInfo[] = [];
-
-                unitIds.forEach((unitId) => {
-                    const sheetData = unitData[unitId];
-
-                    if (sheetData == null) {
+                    if (cellData == null) {
                         return true;
                     }
 
-                    const sheetIds = Object.keys(sheetData);
+                    const cellValue = this._getMergedCellData(unitId, sheetId, cellData);
 
-                    sheetIds.forEach((sheetId) => {
-                        const cellData = sheetData[sheetId];
+                    const setRangeValuesMutation = {
+                        subUnitId: sheetId,
+                        unitId,
+                        cellValue,
+                    };
 
-                        // const arrayFormula = arrayFormulaRange[unitId][sheetId];
-
-                        if (cellData == null) {
-                            return true;
-                        }
-
-                        const cellValue = this._getMergedCellData(unitId, sheetId, cellData);
-
-                        const setRangeValuesMutation = {
-                            subUnitId: sheetId,
-                            unitId,
-                            cellValue,
-                        };
-
-                        redoMutationsInfo.push({
-                            id: SetRangeValuesMutation.id,
-                            params: setRangeValuesMutation,
-                        });
+                    redoMutationsInfo.push({
+                        id: SetRangeValuesMutation.id,
+                        params: setRangeValuesMutation,
                     });
                 });
+            });
 
-                const result = redoMutationsInfo.every((m) =>
-                    this._commandService.executeCommand(m.id, m.params, {
-                        onlyLocal: true,
-                    })
-                );
-                return result;
-            })
-        );
+            const result = redoMutationsInfo.every((m) =>
+                this._commandService.executeCommand(m.id, m.params, {
+                    onlyLocal: true,
+                })
+            );
+            return result;
+        }));
     }
 
     /**
