@@ -21,6 +21,7 @@ import React, { useEffect, useState } from 'react';
 import { FIX_ONE_PIXEL_BLUR_OFFSET } from '@univerjs/engine-render';
 import { DISABLE_AUTO_FOCUS_KEY, IEditorService, TextEditor, useObservable } from '@univerjs/ui';
 // import { ICellEditorManagerService } from '../../services/editor/cell-editor-manager.service';
+import { ISlideEditorManagerService } from '../../services/slide-editor-manager.service';
 import styles from './index.module.less';
 
 interface ICellIEditorProps { }
@@ -44,8 +45,8 @@ export const EditorContainer: React.FC<ICellIEditorProps> = () => {
         ...EDITOR_DEFAULT_POSITION,
     });
 
-    // const cellEditorManagerService = useDependency(ICellEditorManagerService);
-    // const editorService = useDependency(IEditorService);
+    const slideEditorManagerService = useDependency(ISlideEditorManagerService);
+    const editorService = useDependency(IEditorService);
     const contextService = useDependency(IContextService);
 
     const disableAutoFocus = useObservable(
@@ -72,49 +73,50 @@ export const EditorContainer: React.FC<ICellIEditorProps> = () => {
     };
 
     useEffect(() => {
-        // cellEditorManagerService.state$.subscribe((param) => {
-        //     if (param == null) {
-        //         return;
-        //     }
+        slideEditorManagerService.state$.subscribe((param) => {
+            if (param == null) {
+                return;
+            }
 
-        //     const {
-        //         startX = HIDDEN_EDITOR_POSITION,
-        //         startY = HIDDEN_EDITOR_POSITION,
-        //         endX = 0,
-        //         endY = 0,
-        //         show = false,
-        //     } = param;
+            const {
+                startX = HIDDEN_EDITOR_POSITION,
+                startY = HIDDEN_EDITOR_POSITION,
+                endX = 0,
+                endY = 0,
+                show = false,
+            } = param;
 
-        //     if (!show) {
-        //         setState({
-        //             ...EDITOR_DEFAULT_POSITION,
-        //         });
-        //     } else {
-        //         setState({
-        //             width: endX - startX - FIX_ONE_PIXEL_BLUR_OFFSET + 2,
-        //             height: endY - startY - FIX_ONE_PIXEL_BLUR_OFFSET + 2,
-        //             left: startX + FIX_ONE_PIXEL_BLUR_OFFSET,
-        //             top: startY + FIX_ONE_PIXEL_BLUR_OFFSET,
-        //         });
+            if (!show) {
+                setState({
+                    ...EDITOR_DEFAULT_POSITION,
+                });
+            } else {
+                setState({
+                    width: endX - startX - FIX_ONE_PIXEL_BLUR_OFFSET + 2,
+                    height: endY - startY - FIX_ONE_PIXEL_BLUR_OFFSET + 2,
+                    left: startX + FIX_ONE_PIXEL_BLUR_OFFSET,
+                    top: startY + FIX_ONE_PIXEL_BLUR_OFFSET,
+                });
 
-        //         const editor = editorService.getEditor(DOCS_NORMAL_EDITOR_UNIT_ID_KEY);
+                const editor = editorService.getEditor(DOCS_NORMAL_EDITOR_UNIT_ID_KEY);
 
-        //         if (editor == null) {
-        //             return;
-        //         }
+                if (editor == null) {
+                    return;
+                }
 
-        //         const { left, top, width, height } = editor.getBoundingClientRect();
+                const { left, top, width, height } = editor.getBoundingClientRect();
 
-        //         cellEditorManagerService.setRect({ left, top, width, height });
-        //     }
-        // });
-
+                slideEditorManagerService.setRect({ left, top, width, height });
+            }
+        });
+        // eslint-disable-next-line react-hooks/exhaustive-deps
     }, []); // Empty dependency array means this effect runs once on mount and clean up on unmount
 
     useEffect(() => {
         if (!disableAutoFocus) {
-            // cellEditorManagerService.setFocus(true);
+            slideEditorManagerService.setFocus(true);
         }
+        // eslint-disable-next-line react-hooks/exhaustive-deps
     }, [disableAutoFocus, state]);
 
     return (
@@ -128,7 +130,7 @@ export const EditorContainer: React.FC<ICellIEditorProps> = () => {
             }}
         >
 
-            <TextEditor
+            {/* <TextEditor
                 id={DOCS_FORMULA_BAR_EDITOR_UNIT_ID_KEY}
                 isSheetEditor
                 // resizeCallBack={resizeCallBack}
@@ -137,7 +139,7 @@ export const EditorContainer: React.FC<ICellIEditorProps> = () => {
                 className={styles.formulaContent}
                 // snapshot={INITIAL_SNAPSHOT}
                 isSingle={false}
-            />
+            /> */}
             <TextEditor
                 id={DOCS_NORMAL_EDITOR_UNIT_ID_KEY}
                 className={styles.editorInput}

@@ -32,7 +32,26 @@ import { ISlideEditorBridgeService } from '../services/slide-editor-bridge.servi
 
 const HIDDEN_EDITOR_POSITION = -1000;
 
+// interface ICanvasOffset {
+//     left: number;
+//     top: number;
+// }
+
+enum CursorChange {
+    InitialState,
+    StartEditor,
+    CursorChange,
+}
+
 export class SlideEditorBridgeRenderController extends RxDisposable implements IRenderModule {
+    /**
+     * It is used to distinguish whether the user has actively moved the cursor in the editor, mainly through mouse clicks.
+     */
+    private _cursorChange: CursorChange = CursorChange.InitialState;
+
+    /** If the corresponding unit is active and prepared for editing. */
+    private _isUnitEditing = false;
+
     textRect$: Subject<IRectXYWH> = new Subject();
     constructor(
         private readonly _context: IRenderContext<Workbook>,
@@ -50,6 +69,7 @@ export class SlideEditorBridgeRenderController extends RxDisposable implements I
     private _init(): IDisposable {
         const d = new DisposableCollection();
         this._initSubjectListener(d);
+
         return d;
     }
 
@@ -83,6 +103,7 @@ export class SlideEditorBridgeRenderController extends RxDisposable implements I
             paddingData: { t: 0, b: 1, l: 2, r: 2 },
         };
 
+        // same concept as editCellState in sheets-ui/src/controllers/editor/editing.render-controller.ts
         const _editRectState = {
             position: rect,
             scaleX: 1,

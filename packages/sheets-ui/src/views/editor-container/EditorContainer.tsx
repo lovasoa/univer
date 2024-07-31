@@ -111,6 +111,7 @@ export const EditorContainer: React.FC<ICellIEditorProps> = () => {
     // eslint-disable-next-line react-hooks/exhaustive-deps
     }, []); // Empty dependency array means this effect runs once on mount and clean up on unmount
 
+    console.log('disableAutoFocus', disableAutoFocus, state);
     useEffect(() => {
         if (!disableAutoFocus) {
             cellEditorManagerService.setFocus(true);

@@ -18,7 +18,8 @@ import type { ICommand, SlideDataModel } from '@univerjs/core';
 import { CommandType, IUniverInstanceService, PageElementType, Tools, UniverInstanceType } from '@univerjs/core';
 import { CanvasView } from '@univerjs/slides';
 import { IRenderManagerService } from '@univerjs/engine-render';
-import { SlideEditorBridgeRenderController } from '../../controllers/slide-editing-bridge.render-controller';
+import { SlideEditorBridgeRenderController } from '../../controllers/slide-editor-bridge.render-controller';
+import { ISlideEditorBridgeService } from '../../services/slide-editor-bridge.service';
 
 export interface ISlideAddTextParam {
     text: string;
@@ -69,18 +70,26 @@ export const SlideAddTextOperation: ICommand<ISlideAddTextParam> = {
             canvasview.setObjectActiveByPage(sceneObject, activePage.id);
         }
 
-        // const editorBridgeRenderController = accessor.get(SlideEditorBridgeRenderController);
-        const renderManagerService = accessor.get(IRenderManagerService);
-        const render = renderManagerService.getCurrent();
-        const slideEditorBridgeRenderController = render?.with(SlideEditorBridgeRenderController);
+        // copycat from sheet
+        {
+            // const editorBridgeRenderController = accessor.get(SlideEditorBridgeRenderController);
+            const renderManagerService = accessor.get(IRenderManagerService);
+            const render = renderManagerService.getCurrent();
+            const slideEditorBridgeRenderController = render?.with(SlideEditorBridgeRenderController);
 
-        const rect = {
-            x: left,
-            y: top,
-            width: defaultWidth,
-            height: defaultheight,
-        };
-        slideEditorBridgeRenderController?.textRect$.next(rect);
+            const rect = {
+                x: left,
+                y: top,
+                width: defaultWidth,
+                height: defaultheight,
+            };
+            slideEditorBridgeRenderController?.setTextRectXYWH(rect);
+
+            // see cell-edit.operation.ts, sheet.operation.set-cell-edit-visible
+            const slideEditorBridgeService = accessor.get(ISlideEditorBridgeService);
+            const unitId = 'slide-test';
+            slideEditorBridgeService.changeVisible({ visible: true, eventType: 3, unitId });
+        }
 
         return true;
     },
