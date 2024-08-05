@@ -54,10 +54,11 @@ export const LifecycleToModules = new Map<LifecycleStages, Array<DependencyIdent
 /**
  * Register the decorated class to be automatically instantiated when Univer progresses to the certain lifecycle stage.
  *
+ * @deprecated Do no this API anymore. Please call `this._injector.get(XXX)` in your plugin's lifecycle hooks.
+ *
  * @param lifecycleStage The lifecycle stage to instantiate this class.
  * @param identifier The dependency identifier of the class. Usually, it is the class itself unless you bind this class
  * with another injection identifier.
- *
  *
  * @example
  * // Ignore the `\` below. This is JSDoc's bug.
@@ -81,6 +82,8 @@ export function OnLifecycle(lifecycleStage: LifecycleStages, identifier: Depende
 
 /**
  * Register a dependency to be automatically instantiated when Univer progresses to the certain lifecycle stage.
+ *
+ * @deprecated Do no this API anymore. Please call `this._injector.get(XXX)` in your plugin's lifecycle hooks.
  *
  * @param lifecycleStage The lifecycle stage to instantiate this dependency.
  * @param identifier The dependencies' identifier. **Beware** that if the dependency (e.g. a class) is bound to an
