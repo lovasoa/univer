@@ -85,6 +85,7 @@ import { ISlideEditorBridgeService } from '../services/slide-editor-bridge.servi
 import { ISlideEditorManagerService } from '../services/slide-editor-manager.service';
 
 import { SetTextEditArrowOperation } from '../commands/operations/text-edit.operation';
+import { CursorChange } from '../type';
 
 const HIDDEN_EDITOR_POSITION = -1000;
 
@@ -95,12 +96,6 @@ const EDITOR_BORDER_SIZE = 2;
 interface ICanvasOffset {
     left: number;
     top: number;
-}
-
-enum CursorChange {
-    InitialState,
-    StartEditor,
-    CursorChange,
 }
 
 export class SlideEditingRenderController extends Disposable implements IRenderModule {
